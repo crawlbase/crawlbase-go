@@ -1,5 +1,7 @@
 package crawlbase
 
+import "encoding/base64"
+
 // Response is what every Crawlbase API verb returns on success. Fields
 // follow the same naming convention used by the other Crawlbase SDKs
 // (Python / Node / Ruby / PHP) so cross-language porting is mechanical.
@@ -43,4 +45,15 @@ type Response struct {
 	// only when the response Content-Type is JSON (e.g. scraper=... or
 	// format=json calls). Use it to avoid double-parsing the body.
 	JSON map[string]any
+}
+
+// ImageBytes decodes the base64-encoded screenshot in res.Body into raw
+// image bytes ready for os.WriteFile / image.Decode. Use this on
+// responses from screenshot calls (CrawlingAPI.Get with
+// options["screenshot"] = "true").
+//
+// Returns an error if the body isn't valid base64 — verify
+// res.StatusCode and res.PCStatus first.
+func ImageBytes(res *Response) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(res.Body)
 }

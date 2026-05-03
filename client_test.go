@@ -12,20 +12,10 @@ import (
 )
 
 // TestNewCrawlingAPIRequiresToken verifies the constructor enforces a
-// non-empty token. Same check applies to all 4 New*API constructors —
-// they all funnel through newBaseClient.
+// non-empty token.
 func TestNewCrawlingAPIRequiresToken(t *testing.T) {
 	if _, err := NewCrawlingAPI(""); !errors.Is(err, ErrTokenRequired) {
 		t.Fatalf("expected ErrTokenRequired, got %v", err)
-	}
-	if _, err := NewScraperAPI(""); !errors.Is(err, ErrTokenRequired) {
-		t.Fatalf("Scraper: expected ErrTokenRequired, got %v", err)
-	}
-	if _, err := NewLeadsAPI(""); !errors.Is(err, ErrTokenRequired) {
-		t.Fatalf("Leads: expected ErrTokenRequired, got %v", err)
-	}
-	if _, err := NewScreenshotsAPI(""); !errors.Is(err, ErrTokenRequired) {
-		t.Fatalf("Screenshots: expected ErrTokenRequired, got %v", err)
 	}
 }
 
@@ -85,18 +75,20 @@ func TestRequestBuildsCorrectURL(t *testing.T) {
 	}
 }
 
-// TestScraperBasePath confirms ScraperAPI hits the /scraper endpoint
-// (not the bare root that CrawlingAPI uses).
-func TestScraperBasePath(t *testing.T) {
-	var path string
+// TestScraperViaCrawlingAPI confirms a scraper=NAME call against the
+// modern Crawling API endpoint round-trips JSON correctly. The legacy
+// standalone /scraper endpoint is closed to new sign-ups; modern
+// scraping rides on the Crawling API root with the scraper option.
+func TestScraperViaCrawlingAPI(t *testing.T) {
+	var q map[string][]string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path = r.URL.Path
+		q = r.URL.Query()
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"name":"test","price":"$10"}`)
 	}))
 	defer srv.Close()
 
-	api, _ := NewScraperAPI("t")
+	api, _ := NewCrawlingAPI("t")
 	api.endpoint = srv.URL
 
 	res, err := api.Get("https://www.amazon.com/dp/X", map[string]string{
@@ -105,37 +97,14 @@ func TestScraperBasePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if path != "/scraper" {
-		t.Errorf("path = %q, want /scraper", path)
+	if got := q["scraper"]; len(got) != 1 || got[0] != "amazon-product-details" {
+		t.Errorf("scraper query = %v, want [amazon-product-details]", got)
 	}
-	// JSON should be auto-parsed.
 	if res.JSON == nil {
 		t.Fatal("expected JSON to be auto-parsed")
 	}
 	if res.JSON["name"] != "test" {
 		t.Errorf("JSON.name = %v, want test", res.JSON["name"])
-	}
-}
-
-// TestLeadsAPIDomainParam verifies LeadsAPI forwards the domain as a
-// query param (not as the `url` slot used by the other clients).
-func TestLeadsAPIDomainParam(t *testing.T) {
-	var q map[string][]string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		q = r.URL.Query()
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"leads":[]}`)
-	}))
-	defer srv.Close()
-
-	api, _ := NewLeadsAPI("t")
-	api.endpoint = srv.URL
-
-	if _, err := api.GetFromDomain("stripe.com", nil); err != nil {
-		t.Fatal(err)
-	}
-	if got := q["domain"]; len(got) != 1 || got[0] != "stripe.com" {
-		t.Errorf("domain query = %v, want [stripe.com]", got)
 	}
 }
 

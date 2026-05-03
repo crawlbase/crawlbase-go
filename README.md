@@ -63,22 +63,28 @@ api, _ := crawlbase.NewCrawlingAPI(os.Getenv("CRAWLBASE_TOKEN"))
 js, _  := crawlbase.NewCrawlingAPI(os.Getenv("CRAWLBASE_JS_TOKEN"))
 ```
 
-## All APIs in one package
+## One client, every product
 
-```go
-import "github.com/crawlbase/crawlbase-go"
+The Go SDK is intentionally lean: one [`CrawlingAPI`](https://pkg.go.dev/github.com/crawlbase/crawlbase-go#CrawlingAPI)
+client covers every Crawlbase product through the unified Crawling API
+endpoint:
 
-token := "YOUR_TOKEN"
-crawl,    _ := crawlbase.NewCrawlingAPI(token)    // general-purpose page fetch
-scraper,  _ := crawlbase.NewScraperAPI(token)     // parsed JSON for supported sites
-leads,    _ := crawlbase.NewLeadsAPI(token)       // domain-scoped email extraction (legacy)
-shots,    _ := crawlbase.NewScreenshotsAPI(token) // screenshots; base64 image bytes
-```
+| Use case | Pass in `options` |
+|---|---|
+| Plain crawl | _(nothing — the default)_ |
+| Built-in scraper | `"scraper": "amazon-product-details"` (and friends) |
+| Screenshot | `"screenshot": "true"` |
+| Email extraction | `"scraper": "email-extractor"` |
+| Async + webhook | `"async": "true"` + `"callback": "https://..."` |
+| Push to Enterprise Crawler | `"async": "true"` + `"callback"` + `"crawler": "YourCrawler"` |
 
-The Enterprise Crawler is reached through the Crawling API by passing
-`async`, `callback`, and `crawler` options — there's no separate
-client class. See
-[/docs/crawler](https://crawlbase.com/docs/crawler).
+This is the same surface the other Crawlbase SDKs converge on under
+the hood. The standalone `/scraper`, `/leads`, `/screenshots`
+endpoints are closed to new sign-ups since 2024 — the Go SDK ships
+the modern path only.
+
+The full parameter reference for every option is at
+[/docs/crawling-api](https://crawlbase.com/docs/crawling-api).
 
 ## Common patterns
 
@@ -96,7 +102,7 @@ res, _ := api.Get("https://spa.example.com", map[string]string{
 ### Use a built-in scraper
 
 ```go
-api, _ := crawlbase.NewScraperAPI("YOUR_TOKEN")
+api, _ := crawlbase.NewCrawlingAPI("YOUR_TOKEN")
 res, _ := api.Get(
     "https://www.amazon.com/dp/B08N5WRWNW",
     map[string]string{"scraper": "amazon-product-details"},
@@ -158,8 +164,10 @@ res, err := api.GetWithContext(ctx, "https://example.com/", nil)
 ### Screenshots
 
 ```go
-api, _ := crawlbase.NewScreenshotsAPI("YOUR_TOKEN")
-res, _ := api.Get("https://www.apple.com/", nil)
+api, _ := crawlbase.NewCrawlingAPI("YOUR_JS_TOKEN")
+res, _ := api.Get("https://www.apple.com/", map[string]string{
+    "screenshot": "true",
+})
 img, _ := crawlbase.ImageBytes(res)
 _ = os.WriteFile("apple.png", img, 0o644)
 ```

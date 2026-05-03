@@ -64,11 +64,11 @@ func ExampleCrawlingAPI_javascriptRendering() {
 	fmt.Println(res.StatusCode)
 }
 
-// Apply a built-in scraper to skip the parser step on supported sites.
-// The Body comes back as a JSON string and is also pre-decoded into
-// res.JSON so you can read fields directly.
-func ExampleScraperAPI() {
-	api, _ := crawlbase.NewScraperAPI(os.Getenv("CRAWLBASE_TOKEN"))
+// Apply a built-in scraper via the Crawling API to skip the parser
+// step on supported sites. The Body comes back as a JSON string and
+// is also pre-decoded into res.JSON for direct field access.
+func ExampleCrawlingAPI_scraper() {
+	api, _ := crawlbase.NewCrawlingAPI(os.Getenv("CRAWLBASE_TOKEN"))
 	res, err := api.Get(
 		"https://www.amazon.com/dp/B08N5WRWNW",
 		map[string]string{"scraper": "amazon-product-details"},
@@ -97,11 +97,13 @@ func ExampleCrawlingAPI_GetWithContext() {
 	fmt.Println(res.StatusCode)
 }
 
-// Capture a screenshot. The Body is base64-encoded image bytes; use
-// crawlbase.ImageBytes to decode.
-func ExampleScreenshotsAPI() {
-	api, _ := crawlbase.NewScreenshotsAPI("YOUR_TOKEN")
-	res, err := api.Get("https://www.apple.com/", nil)
+// Capture a screenshot via the Crawling API. The Body is base64-
+// encoded image bytes; use [ImageBytes] to decode.
+func ExampleCrawlingAPI_screenshot() {
+	api, _ := crawlbase.NewCrawlingAPI("YOUR_JS_TOKEN")
+	res, err := api.Get("https://www.apple.com/", map[string]string{
+		"screenshot": "true",
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

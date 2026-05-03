@@ -99,7 +99,12 @@ func (c *baseClient) request(
 		return nil, fmt.Errorf("crawlbase: build request: %w", err)
 	}
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-	req.Header.Set("Accept-Encoding", "gzip,deflate")
+	// NOTE: do not set Accept-Encoding manually. net/http.Transport
+	// adds "Accept-Encoding: gzip" itself and *automatically*
+	// decompresses the response body before handing it to us — but
+	// only when the caller didn't already set the header. If we set
+	// it ourselves, the user is presumed to want raw encoded bytes
+	// back, and ReadAll returns gzip-compressed data.
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}

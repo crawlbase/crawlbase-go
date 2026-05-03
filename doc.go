@@ -1,9 +1,17 @@
 // Package crawlbase is the official Go client for the Crawlbase API
 // (https://crawlbase.com/docs/api-reference).
 //
-// One package wraps every Crawlbase product — Crawling API, Scraper, Leads,
-// Screenshots — with idiomatic Go ergonomics. Same constructor shape across
-// every product, no external dependencies, sensible defaults.
+// The package exposes one client — [CrawlingAPI] — that covers every
+// Crawlbase product through the unified Crawling API endpoint:
+//
+//   - Plain crawls (default usage)
+//   - Built-in scrapers via options["scraper"] = "amazon-product-details" etc.
+//   - Screenshots via options["screenshot"] = "true"
+//   - Email extraction via options["scraper"] = "email-extractor"
+//   - Async + webhook delivery via options["async"] / options["callback"]
+//
+// Idiomatic Go ergonomics, no external dependencies (only net/http +
+// stdlib), sensible defaults.
 //
 // # Quickstart
 //
