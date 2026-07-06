@@ -49,8 +49,11 @@ func TestRequestBuildsCorrectURL(t *testing.T) {
 	if res.StatusCode != 200 {
 		t.Errorf("StatusCode = %d, want 200", res.StatusCode)
 	}
-	if res.PCStatus != 200 {
-		t.Errorf("PCStatus = %d, want 200 (lifted from header)", res.PCStatus)
+	if res.CBStatus != 200 {
+		t.Errorf("CBStatus = %d, want 200 (lifted from header)", res.CBStatus)
+	}
+	if res.PCStatus != res.CBStatus {
+		t.Errorf("PCStatus = %d, want %d (mirrors CBStatus)", res.PCStatus, res.CBStatus)
 	}
 	if res.URL != "https://example.com/" {
 		t.Errorf("URL = %q, want example.com", res.URL)
@@ -163,13 +166,10 @@ func TestContextCancellation(t *testing.T) {
 	}
 }
 
-// TestPCStatusFallbackToCBStatus exercises the cb_status / pc_status
-// header alias — the Crawlbase platform emits one or the other
-// depending on age, and the SDK reads either.
-func TestPCStatusFallbackToCBStatus(t *testing.T) {
+// TestCBStatusFromCBHeader verifies cb_status is read into CBStatus.
+func TestCBStatusFromCBHeader(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("cb_status", "525")
-		// no pc_status header — SDK should fall back to cb_status.
 		_, _ = io.WriteString(w, "")
 	}))
 	defer srv.Close()
@@ -181,7 +181,59 @@ func TestPCStatusFallbackToCBStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if res.CBStatus != 525 {
+		t.Errorf("CBStatus = %d, want 525 (read from cb_status header)", res.CBStatus)
+	}
 	if res.PCStatus != 525 {
-		t.Errorf("PCStatus = %d, want 525 (read from cb_status header)", res.PCStatus)
+		t.Errorf("PCStatus = %d, want 525 (mirrors CBStatus)", res.PCStatus)
+	}
+}
+
+// TestCBStatusFallbackToPCStatus verifies legacy pc_status is accepted
+// when cb_status is absent.
+func TestCBStatusFallbackToPCStatus(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("pc_status", "200")
+		_, _ = io.WriteString(w, "<html>ok</html>")
+	}))
+	defer srv.Close()
+
+	api, _ := NewCrawlingAPI("t")
+	api.endpoint = srv.URL
+
+	res, err := api.Get("https://example.com/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.CBStatus != 200 {
+		t.Errorf("CBStatus = %d, want 200 (read from pc_status header)", res.CBStatus)
+	}
+	if res.PCStatus != 200 {
+		t.Errorf("PCStatus = %d, want 200 (mirrors CBStatus)", res.PCStatus)
+	}
+}
+
+// TestCBStatusPrefersCBOverPC verifies cb_status wins when both headers
+// are present.
+func TestCBStatusPrefersCBOverPC(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("cb_status", "525")
+		w.Header().Set("pc_status", "200")
+		_, _ = io.WriteString(w, "")
+	}))
+	defer srv.Close()
+
+	api, _ := NewCrawlingAPI("t")
+	api.endpoint = srv.URL
+
+	res, err := api.Get("https://example.com/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.CBStatus != 525 {
+		t.Errorf("CBStatus = %d, want 525 (cb_status preferred)", res.CBStatus)
+	}
+	if res.PCStatus != 525 {
+		t.Errorf("PCStatus = %d, want 525 (mirrors CBStatus)", res.PCStatus)
 	}
 }

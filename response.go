@@ -2,15 +2,13 @@ package crawlbase
 
 import "encoding/base64"
 
-// Response is what every Crawlbase API verb returns on success. Fields
-// follow the same naming convention used by the other Crawlbase SDKs
-// (Python / Node / Ruby / PHP) so cross-language porting is mechanical.
+// Response is what every Crawlbase API verb returns on success.
 //
 // StatusCode is the HTTP status of the SDK's request to Crawlbase.
-// PCStatus is Crawlbase's verdict on the *target* (the site you asked it
+// CBStatus is Crawlbase's verdict on the *target* (the site you asked it
 // to crawl). They can disagree — a target can return 200 with empty body,
-// in which case StatusCode is 200 but PCStatus is 520. Always branch on
-// PCStatus when deciding whether to retry. See
+// in which case StatusCode is 200 but CBStatus is 520. Always branch on
+// CBStatus when deciding whether to retry. See
 // https://crawlbase.com/docs/crawling-api/#errors for the full table.
 type Response struct {
 	// StatusCode is the HTTP status of the request to Crawlbase.
@@ -23,9 +21,14 @@ type Response struct {
 	// Headers are the response headers, lower-cased on the way in.
 	Headers map[string]string
 
-	// PCStatus is the Crawlbase verdict on the target — pulled from the
-	// `pc_status` (or `cb_status`) response header. Branch on this for
-	// retry decisions. Zero when not present.
+	// CBStatus is the Crawlbase verdict on the target — pulled from the
+	// `cb_status` (or legacy `pc_status`) response header. Branch on this
+	// for retry decisions. Zero when not present.
+	CBStatus int
+
+	// Deprecated: Use CBStatus instead. PCStatus is kept for backward
+	// compatibility and mirrors CBStatus. It will be removed in a future
+	// major version.
 	PCStatus int
 
 	// OriginalStatus is the HTTP status the target returned to Crawlbase —
@@ -53,7 +56,7 @@ type Response struct {
 // options["screenshot"] = "true").
 //
 // Returns an error if the body isn't valid base64 — verify
-// res.StatusCode and res.PCStatus first.
+// res.StatusCode and res.CBStatus first.
 func ImageBytes(res *Response) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(res.Body)
 }

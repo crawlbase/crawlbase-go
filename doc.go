@@ -53,6 +53,6 @@
 // # Response
 //
 // All verbs return a [Response] with the HTTP status, body, lower-cased
-// headers, and the Crawlbase-specific verdict fields (PCStatus,
+// headers, and the Crawlbase-specific verdict fields (CBStatus,
 // OriginalStatus, URL, RID) lifted out of the headers for typed access.
 package crawlbase
