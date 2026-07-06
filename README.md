@@ -128,7 +128,7 @@ func crawl(api *crawlbase.CrawlingAPI, url string, attempts int) (*crawlbase.Res
         if err != nil {
             return nil, err
         }
-        if res.StatusCode == 200 && res.PCStatus == 200 {
+        if res.StatusCode == 200 && res.CBStatus == 200 {
             return res, nil
         }
         if res.StatusCode >= 400 && res.StatusCode < 500 {
@@ -178,11 +178,13 @@ The Crawlbase platform returns two status codes on every response:
 
 - `Response.StatusCode` — the HTTP status of the SDK's request to
   Crawlbase.
-- `Response.PCStatus` — Crawlbase's verdict on the *target* (the site
+- `Response.CBStatus` — Crawlbase's verdict on the *target* (the site
   you asked it to crawl). Branch on this for retry decisions.
+- `Response.PCStatus` — deprecated alias of `CBStatus`; kept for
+  backward compatibility and removed in a future major release.
 
 A target can return `200` with empty body, in which case `StatusCode`
-is `200` but `PCStatus` is `520`. See
+is `200` but `CBStatus` is `520`. See
 [the Crawling API errors table](https://crawlbase.com/docs/crawling-api/#errors)
 for the full list.
 
@@ -190,7 +192,7 @@ for the full list.
 res, err := api.Get(url, nil)
 if err != nil { return err }
 
-switch res.PCStatus {
+switch res.CBStatus {
 case 200:
     use(res.Body)
 case 520, 525:
@@ -199,12 +201,12 @@ case 520, 525:
 case 521, 522, 523:
     // Target unreachable / timed out. Backoff + retry.
 default:
-    log.Printf("crawl failed: url=%s pc_status=%d", url, res.PCStatus)
+    log.Printf("crawl failed: url=%s cb_status=%d", url, res.CBStatus)
 }
 ```
 
 All retries against the platform are free — only successful responses
-(`PCStatus == 200`) count against your quota.
+(`CBStatus == 200`) count against your quota.
 
 ## Performance
 
@@ -213,7 +215,7 @@ All retries against the platform are free — only successful responses
   pool. Build once, share across goroutines (the SDK is goroutine-safe).
 - **Use the cheapest token that works.** Don't default to the
   JavaScript token "just in case" — the normal token is faster and
-  uses less concurrency. Promote on `PCStatus == 520` / `525`.
+  uses less concurrency. Promote on `CBStatus == 520` / `525`.
 - **Prefer `ajax_wait` over `page_wait`.** Fixed waits burn concurrency
   even on fast pages.
 - **For batch jobs: async + webhook.** Synchronous calls hold a

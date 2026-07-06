@@ -46,14 +46,14 @@ func TestIntegration_CrawlingGetStatic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("StatusCode=%d PCStatus=%d OriginalStatus=%d body_len=%d",
-		res.StatusCode, res.PCStatus, res.OriginalStatus, len(res.Body))
+	t.Logf("StatusCode=%d CBStatus=%d OriginalStatus=%d body_len=%d",
+		res.StatusCode, res.CBStatus, res.OriginalStatus, len(res.Body))
 
 	if res.StatusCode != 200 {
 		t.Fatalf("StatusCode = %d, want 200", res.StatusCode)
 	}
-	if res.PCStatus != 200 {
-		t.Fatalf("PCStatus = %d, want 200", res.PCStatus)
+	if res.CBStatus != 200 {
+		t.Fatalf("CBStatus = %d, want 200", res.CBStatus)
 	}
 	if !strings.Contains(res.Body, "headers") {
 		t.Errorf("body missing expected 'headers' marker; got %q", res.Body[:min(200, len(res.Body))])
@@ -79,14 +79,14 @@ func TestIntegration_CrawlingGetJSToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("StatusCode=%d PCStatus=%d body_len=%d", res.StatusCode, res.PCStatus, len(res.Body))
+	t.Logf("StatusCode=%d CBStatus=%d body_len=%d", res.StatusCode, res.CBStatus, len(res.Body))
 
 	if res.StatusCode != 200 {
 		t.Fatalf("StatusCode = %d, want 200", res.StatusCode)
 	}
-	if res.PCStatus != 200 {
-		t.Fatalf("PCStatus = %d, want 200 — got %d (body=%q)",
-			res.PCStatus, res.PCStatus, res.Body[:min(300, len(res.Body))])
+	if res.CBStatus != 200 {
+		t.Fatalf("CBStatus = %d, want 200 — got %d (body=%q)",
+			res.CBStatus, res.CBStatus, res.Body[:min(300, len(res.Body))])
 	}
 	if !strings.Contains(strings.ToLower(res.Body), "example domain") {
 		t.Errorf("body missing 'example domain' marker; got %q", res.Body[:min(200, len(res.Body))])
@@ -113,8 +113,8 @@ func TestIntegration_ScraperViaCrawlingAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("StatusCode=%d PCStatus=%d body_len=%d json_keys=%v",
-		res.StatusCode, res.PCStatus, len(res.Body), keysOf(res.JSON))
+	t.Logf("StatusCode=%d CBStatus=%d body_len=%d json_keys=%v",
+		res.StatusCode, res.CBStatus, len(res.Body), keysOf(res.JSON))
 
 	if res.StatusCode != 200 {
 		t.Fatalf("StatusCode = %d, want 200; body=%q",

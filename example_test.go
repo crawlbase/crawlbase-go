@@ -27,14 +27,14 @@ func ExampleNewCrawlingAPI() {
 	}
 }
 
-// Reading the Crawlbase verdict on the target. PCStatus is the field
+// Reading the Crawlbase verdict on the target. CBStatus is the field
 // you branch on for retry decisions — see
 // https://crawlbase.com/docs/crawling-api/#errors for the full table.
-func ExampleResponse_PCStatus() {
+func ExampleResponse_CBStatus() {
 	api, _ := crawlbase.NewCrawlingAPI(os.Getenv("CRAWLBASE_TOKEN"))
 	res, _ := api.Get("https://example.com/", nil)
 
-	switch res.PCStatus {
+	switch res.CBStatus {
 	case 200:
 		// success
 	case 520, 525:

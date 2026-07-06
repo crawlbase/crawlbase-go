@@ -131,13 +131,13 @@ func (c *baseClient) request(
 	}
 
 	// Lift the Crawlbase-specific verdict fields out of the headers for
-	// typed access. The server uses both `pc_status` (legacy) and
-	// `cb_status` (renamed during the rebrand) — read either.
-	if v := out.Headers["pc_status"]; v != "" {
-		out.PCStatus, _ = strconv.Atoi(v)
-	} else if v := out.Headers["cb_status"]; v != "" {
-		out.PCStatus, _ = strconv.Atoi(v)
+	// typed access. Prefer `cb_status`; fall back to legacy `pc_status`.
+	if v := out.Headers["cb_status"]; v != "" {
+		out.CBStatus, _ = strconv.Atoi(v)
+	} else if v := out.Headers["pc_status"]; v != "" {
+		out.CBStatus, _ = strconv.Atoi(v)
 	}
+	out.PCStatus = out.CBStatus
 	if v := out.Headers["original_status"]; v != "" {
 		out.OriginalStatus, _ = strconv.Atoi(v)
 	}
@@ -148,18 +148,19 @@ func (c *baseClient) request(
 	// callers a json.Unmarshal step on scraper / format=json responses.
 	if ct := out.Headers["content-type"]; strings.Contains(ct, "json") && len(bodyBytes) > 0 {
 		_ = json.Unmarshal(bodyBytes, &out.JSON)
-		// If the JSON envelope carries url / pc_status / original_status,
+		// If the JSON envelope carries url / cb_status / original_status,
 		// prefer those over the headers (matches Node SDK behavior — the
 		// JSON form is canonical for format=json calls).
 		if out.JSON != nil {
 			if v, ok := out.JSON["url"].(string); ok && v != "" {
 				out.URL = v
 			}
-			if v, ok := out.JSON["pc_status"].(float64); ok {
-				out.PCStatus = int(v)
-			} else if v, ok := out.JSON["cb_status"].(float64); ok {
-				out.PCStatus = int(v)
+			if v, ok := out.JSON["cb_status"].(float64); ok {
+				out.CBStatus = int(v)
+			} else if v, ok := out.JSON["pc_status"].(float64); ok {
+				out.CBStatus = int(v)
 			}
+			out.PCStatus = out.CBStatus
 			if v, ok := out.JSON["original_status"].(float64); ok {
 				out.OriginalStatus = int(v)
 			}
