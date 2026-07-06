@@ -30,8 +30,9 @@ func token(t *testing.T, env string) string {
 }
 
 // TestIntegration_CrawlingGetStatic exercises the basic Crawling API
-// path against a stable, low-cost target (httpbin echoes the request
-// headers back, so we can sanity-check that we crawled a real page).
+// path against a stable target. Assert on CBStatus (the billed verdict)
+// rather than StatusCode alone — the two can diverge when the target
+// returns a non-2xx original_status but Crawlbase still delivers body.
 func TestIntegration_CrawlingGetStatic(t *testing.T) {
 	api, err := crawlbase.NewCrawlingAPI(token(t, "CRAWLBASE_TOKEN"))
 	if err != nil {
@@ -41,7 +42,7 @@ func TestIntegration_CrawlingGetStatic(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	res, err := api.GetWithContext(ctx, "https://httpbin.org/headers", nil)
+	res, err := api.GetWithContext(ctx, "https://example.com/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,14 +50,14 @@ func TestIntegration_CrawlingGetStatic(t *testing.T) {
 	t.Logf("StatusCode=%d CBStatus=%d OriginalStatus=%d body_len=%d",
 		res.StatusCode, res.CBStatus, res.OriginalStatus, len(res.Body))
 
-	if res.StatusCode != 200 {
-		t.Fatalf("StatusCode = %d, want 200", res.StatusCode)
-	}
 	if res.CBStatus != 200 {
 		t.Fatalf("CBStatus = %d, want 200", res.CBStatus)
 	}
-	if !strings.Contains(res.Body, "headers") {
-		t.Errorf("body missing expected 'headers' marker; got %q", res.Body[:min(200, len(res.Body))])
+	if len(res.Body) == 0 {
+		t.Fatal("expected non-empty body")
+	}
+	if !strings.Contains(strings.ToLower(res.Body), "example domain") {
+		t.Errorf("body missing expected 'example domain' marker; got %q", res.Body[:min(200, len(res.Body))])
 	}
 }
 
