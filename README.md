@@ -222,6 +222,23 @@ All retries against the platform are free — only successful responses
   concurrency slot until the upstream finishes; async releases the
   slot the moment the request is queued.
 
+## Smart AI Proxy usage
+
+The [Smart AI Proxy](https://crawlbase.com/docs/smart-proxy) is a standard rotating HTTP(S) proxy endpoint, so it needs no SDK: point any HTTP client at `smartproxy.crawlbase.com:8012` (HTTP) or `smartproxy.crawlbase.com:8013` (HTTPS) with your token as the proxy username and an empty password. Crawlbase handles proxy rotation, retries and anti-bot bypass on its side.
+
+```go
+proxyURL, _ := url.Parse("https://YOUR_TOKEN:@smartproxy.crawlbase.com:8013")
+client := &http.Client{Transport: &http.Transport{
+    Proxy:           http.ProxyURL(proxyURL),
+    TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+}}
+res, _ := client.Get("https://httpbin.org/ip")
+body, _ := io.ReadAll(res.Body)
+fmt.Println(string(body))
+```
+
+Note: the proxy re-signs HTTPS traffic, so certificate verification must be disabled on the client (as in the example). See the [Smart AI Proxy documentation](https://crawlbase.com/docs/smart-proxy) for all options.
+
 ## Documentation
 
 Full API reference: [crawlbase.com/docs/sdk-go](https://crawlbase.com/docs/sdk-go)
